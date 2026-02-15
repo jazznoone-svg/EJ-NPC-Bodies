@@ -1,0 +1,36 @@
+///////////////////////////////////////////////
+/// live code!
+////////////////////////////////////////////////
+ACTION_IF !VARIABLE_IS_SET always_block_installed BEGIN
+
+    
+    always_block_installed = 1
+
+    OUTER_SPRINT sfo_library_path "sfo" // the path (relative to your mod directory) to the directory SFO is in. Usually 'sfo'.
+    OUTER_SPRINT sfo_tra_path "tra" // the path (relative to your mod directory) to the directory in which you keep tra files. Usually 'lang' or 'tra'.
+    OUTER_SPRINT sfo_marker_prefix "EJB" // your modder prefix, possibly followed by some symbol(s) that distinguish this mod from your other mods.
+
+    PRINT "Loading SFO..."
+    SILENT
+    INCLUDE "%MOD_FOLDER%/%sfo_library_path%/sfo_init.tpc"
+    VERBOSE
+    PRINT "...done"
+
+    LAF include STR_VAR file=bodies_functions.tph location=lib END
+
+///////////////////////////////////////////////
+/// Create DV index array
+////////////////////////////////////////////////
+
+    LAM create_dv_index_array
+
+///////////////////////////////////////////////
+/// Process cre files
+////////////////////////////////////////////////
+    LAM process_cres
+    
+
+END
+
+
+

@@ -1,0 +1,10 @@
+
+LAF include STR_VAR file=bodies_functions.tph location=lib END
+
+//check if array exists first
+
+
+
+
+//make bodies items
+    

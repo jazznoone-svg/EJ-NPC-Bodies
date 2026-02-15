@@ -1,0 +1,11 @@
+@1=~This is the dead body of %name%.
+
+STATISTICS:
+
+Weight: %weight%
+~
+
+@2=~Without the body, the spell failed.~
+@3=~%raise% This spell will fail if the body is not present.~
+@4=~%res% This spell works even if the body is not present.~
+@100=~Main Component~

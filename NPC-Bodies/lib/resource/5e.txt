@@ -1,0 +1,8 @@
+race        base  female  mod_dice_size mod_dice_num    mult_dice_size  mult_dice_num
+HUMAN       110   0       10              2               4               2
+HALFORC     140   0       10              2               6               2
+GNOME       35    0       4               2               1               1
+HALFLING    35    0       4               2               1               1
+DWARF       130   0       4               2               6               2
+HALF_ELF    110   0       8               2               4               2
+ELF         90    0       10              2               4               2

@@ -1,0 +1,135 @@
+/////////////////////////////////////////////
+/// Create DV index array
+/////////////////////////////////////////////
+DEFINE_ACTION_MACRO create_dv_index_array BEGIN
+    OUTER_SET ind=0
+    ACTION_PHP_EACH sfo_joinable_dvs AS dv => discard [[
+        array.add[dv_ind]
+        [[
+            "%dv%" => %ind%
+        ]]
+        ind++
+    ]]
+END
+
+/////////////////////////////////////////////
+/// Process cre files
+/////////////////////////////////////////////
+
+DEFINE_ACTION_MACRO process_cres BEGIN
+    //this will process all cre files in the game to extract relevant data from joinable NPCs. Only ever needs to run once as will save to file which can be loaded as required
+    IF [FILE_EXISTS "%data_loc%/EJB_script_info.2da"] [[
+        PRINT "Processing done alreadyy, loading array from file"
+        script_info= 2da_read[|file= "EJB_script_info.2da" location= "%data_loc%"]
+        dv_info= 2da_read[|file= "EJB_dv_info.2da" location= "%data_loc%"]
+    ]] ELSE [[
+        PRINT "Processing cre files to extract joinable NPC data. This may take a while..."
+        ///Load all relevant CRE files and check if they are joinable NPCs.
+        COPY_EXISTING_REGEXP GLOB ~.+\.CRE~ ~override~
+            READ_ASCII DEATHVAR "dv" (32) NULL
+            TO_LOWER dv
+            IF {VARIABLE_IS_SET sfo_joinable_dvs[dv]} 
+                    {{
+                    //this is a joinable NPC, extract relevant data and save to array
+                    READ_STRREF 0x8 name
+                    //replace any " " with "@" in the name to avoid issues with 2da writing
+                    OUTER_INNER_PATCH_SAVE name ~%name%~ BEGIN
+                        REPLACE_TEXTUALLY ~ ~ ~@~
+                    END		
+                    LOOKUP_IDS_SYMBOL_OF_INT race race (BYTE_AT 0x272)
+                    READ_ASCII 0x248 script
+                    LOOKUP_IDS_SYMBOL_OF_INT gender gender (BYTE_AT 0x275)
+                    weight= calculate_weight{|race="%race%" gender="%gender%"}
+                    }}
+
+                    array.add
+        2da_write[|file="EJB_script_info.2da" location= "%Wdata_loc%" array="script_info"] 
+        2da_write[|file="EJB_dv_info.2da" location= "%Wdata_loc%" array="dv_info"] 
+        
+        PRINT "Processing complete, data saved to EJB_script_info.2da and EJB_dv_info.2da and script_info and dv_info arrays are ready to use"
+    ]]    
+END
+
+ 
+                
+DEFINE_PATCH_FUNCTION calculate_weight
+    STR_VAR 
+            race= "HUMAN"
+            gender= "MALE"
+    RET
+            weight       
+    BEGIN        
+        use_5e = check_ini{|ini="use_5e_weights"}
+        IF {use_5e = 0} {{ //ad&d weights values taken from players AD&D handbook and complete book of humanoids
+            IF {gender == FEMALE} 
+            {{
+                PATCH_MATCH "%race%" WITH
+                ELF {{
+                    weight = (70 + RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10)) //73-100
+                }}
+                HALF_ELF {{
+                    weight = (85 + RANDOM(1 12) + RANDOM(1 12) + RANDOM(1 12)) // 88-121
+                }}
+                DWARF {{
+                    weight = (105 + RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10)) // 109-145
+                }}
+                HALFLING {{
+                    weight = (48 + RANDOM(1 4) + RANDOM(1 4) + RANDOM(1 4) + RANDOM(1 4) + RANDOM(1 4)) // 52-68
+                }}
+                GNOME{{
+                    weight = (68 + RANDOM(1 4) + RANDOM(1 4) + RANDOM(1 4) + RANDOM(1 4) + RANDOM(1 4)) // 72-88
+                }}
+                HALFORC {{
+                    weight = (95 + RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10)+ RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10)) // 101-155
+                }} //halforcs actually have lower average weight than humans in the AD&D books
+                DEFAULT//human or will also capture any custom races
+                    weight = (100 + RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10)+ RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10)) // 106-160
+                }}
+            }} ELSE {{ //male or any custom gender
+                PATCH_MATCH "%race%" WITH
+                ELF {{
+                    weight = (90 + RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10)) // 93-120
+                }}
+                HALF_ELF {{
+                    weight = (110 + RANDOM(1 12) + RANDOM(1 12) + RANDOM(1 12)) // 113-146
+                }}
+                DWARF {{
+                    weight = (130 + RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10)) // 134-170
+                }}
+                HALFLING {{
+                    weight = (52 + RANDOM(1 4) + RANDOM(1 4) + RANDOM(1 4) + RANDOM(1 4) + RANDOM(1 4)) // 56-72
+                }}
+                GNOME{{
+                    weight = (72 + RANDOM(1 4) + RANDOM(1 4) + RANDOM(1 4) + RANDOM(1 4) + RANDOM(1 4)) // 76-92
+                }}
+                HALFORC {{
+                    weight = (135 + RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10)+ RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10)) // 141-195
+                }} //halforcs actually have lower average weight than humans in the AD&D books
+                DEFAULT//human or will also capture any custom races
+                    weight = (140 + RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10)+ RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10)) // 146-200
+                }}
+            }}
+        }} ELSE {{ //5e weights from players handbook. 5e has same weight for males and females. Note that for simplicity I have not included subraces
+            PATCH_MATCH "%race%" WITH
+            ELF {{//based on high elves 
+                weight = (90 + ((RANDOM(1 10) + RANDOM(1 10)) * RANDOM(1 4))) // 92-170
+            }}
+            HALF_ELF {{
+                weight = (110 + ((RANDOM(1 8) + RANDOM(1 8)) * (RANDOM(1 4) + RANDOM(1 4)))) // 114-238
+            }}
+            DWARF {{//based on mountain dwarves
+                weight = (130 + ((RANDOM(1 4) + RANDOM(1 4)) * (RANDOM(1 6) + RANDOM(1 6)))) // 134-226
+            }}
+            HALFLING {{
+                weight = (35 + RANDOM(1 4) + RANDOM(1 4)) // 37-43
+            }}
+            GNOME{{
+                weight = (35 + RANDOM(1 4) + RANDOM(1 4)) // 37-43
+            }}
+            HALFORC {{//halforcs are on average heavier than humans in 5e, but still have a wide weight range
+                weight = (140 + ((RANDOM(1 10) + RANDOM(1 10)) * (RANDOM(1 6) + RANDOM(1 6)))) // 144-380
+            }}             DEFAULT//human or will also capture any custom races
+                weight = (110 + ((RANDOM(1 10) + RANDOM(1 10)) * (RANDOM(1 4) + RANDOM(1 4)))) // 114-270
+            }}
+        }} 
+    END

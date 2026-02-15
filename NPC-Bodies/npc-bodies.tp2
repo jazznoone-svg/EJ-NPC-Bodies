@@ -1,0 +1,18 @@
+BACKUP ~weidu_external/backup/npc-bodies~
+AUTHOR ~EnigmaJazz based on original mod by gunman~
+VERSION "Alpha 1"
+
+AUTO_EVAL_STRINGS
+
+//Readme needs to be generated
+
+ALWAYS
+    INCLUDE "MOD_FOLDER/lib/always.tpc"
+END
+
+LANGUAGE ~English~
+         ~english~
+         ~%MOD_FOLDER%/tra/english/setup.tra~
+
+//Use specifics.ids
+ 
