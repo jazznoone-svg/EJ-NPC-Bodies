@@ -1,0 +1,10 @@
+2DA V1.0
+0
+        base  female  mod_dice_size mod_dice_num    mult_dice_size  mult_dice_num
+HUMAN       100   0       6              0               1               1
+HALFORC     100   0       6              0               1               1
+GNOME       100   0       6              0               1               1
+HALFLING    100   0       6              0               1               1
+DWARF       100   0       6              0               1               1
+HALF_ELF    100   0       6              0               1               1
+ELF         100   0       6              0               1               1

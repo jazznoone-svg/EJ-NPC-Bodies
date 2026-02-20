@@ -1,4 +1,6 @@
-race        base  female  mod_dice_size mod_dice_num    mult_dice_size  mult_dice_num
+2DA V1.0
+0
+            base  female  mod_dice_size mod_dice_num    mult_dice_size  mult_dice_num
 HUMAN       140   40      10              6               1               1
 HALFORC     135   40      10              6               1               1
 GNOME       72    4       4               5               1               1

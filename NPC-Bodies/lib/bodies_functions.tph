@@ -19,9 +19,9 @@ END
 DEFINE_ACTION_MACRO process_cres BEGIN
     //this will process all cre files in the game to extract relevant data from joinable NPCs. Only ever needs to run once as will save to file which can be loaded as required
     IF [FILE_EXISTS "%data_loc%/EJB_script_info.2da"] [[
-        PRINT "Processing done alreadyy, loading array from file"
-        script_info= 2da_read[|file= "EJB_script_info.2da" location= "%data_loc%"]
-        dv_info= 2da_read[|file= "EJB_dv_info.2da" location= "%data_loc%"]
+        PRINT "Processing done already, loading array from file"
+        LAF 2da_read STR_VAR file=EJB_scripts.2da path= "%data_loc%" RET_ARRAY script_array=array script_rows=rows END
+        LAF 2da_read STR_VAR file=EJB_dvs.2da path= "%data_loc%" RET_ARRAY dv_array=array dv_rows=rows END
     ]] ELSE [[
         PRINT "Processing cre files to extract joinable NPC data. This may take a while..."
         ///Load all relevant CRE files and check if they are joinable NPCs.
@@ -43,11 +43,12 @@ DEFINE_ACTION_MACRO process_cres BEGIN
                     }}
 
                     array.add
-        2da_write[|file="EJB_script_info.2da" location= "%Wdata_loc%" array="script_info"] 
-        2da_write[|file="EJB_dv_info.2da" location= "%Wdata_loc%" array="dv_info"] 
+        2da_write[|file="EJB_scripts.2da" path= "%Wdata_loc%" array="script_array"] 
+        2da_write[|file="EJB_dvs.2da" path= "%data_loc%" array="dv_array"] 
         
-        PRINT "Processing complete, data saved to EJB_script_info.2da and EJB_dv_info.2da and script_info and dv_info arrays are ready to use"
+        PRINT "Data saved to EJB_scripts.2da and EJB_dvs.2da"
     ]]    
+    PRINT "Processing complete, arrays loaded and ready for use"
 END
 
  
@@ -59,77 +60,24 @@ DEFINE_PATCH_FUNCTION calculate_weight
     RET
             weight       
     BEGIN        
-        use_5e = check_ini{|ini="use_5e_weights"}
-        IF {use_5e = 0} {{ //ad&d weights values taken from players AD&D handbook and complete book of humanoids
-            IF {gender == FEMALE} 
-            {{
-                PATCH_MATCH "%race%" WITH
-                ELF {{
-                    weight = (70 + RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10)) //73-100
-                }}
-                HALF_ELF {{
-                    weight = (85 + RANDOM(1 12) + RANDOM(1 12) + RANDOM(1 12)) // 88-121
-                }}
-                DWARF {{
-                    weight = (105 + RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10)) // 109-145
-                }}
-                HALFLING {{
-                    weight = (48 + RANDOM(1 4) + RANDOM(1 4) + RANDOM(1 4) + RANDOM(1 4) + RANDOM(1 4)) // 52-68
-                }}
-                GNOME{{
-                    weight = (68 + RANDOM(1 4) + RANDOM(1 4) + RANDOM(1 4) + RANDOM(1 4) + RANDOM(1 4)) // 72-88
-                }}
-                HALFORC {{
-                    weight = (95 + RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10)+ RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10)) // 101-155
-                }} //halforcs actually have lower average weight than humans in the AD&D books
-                DEFAULT//human or will also capture any custom races
-                    weight = (100 + RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10)+ RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10)) // 106-160
-                }}
-            }} ELSE {{ //male or any custom gender
-                PATCH_MATCH "%race%" WITH
-                ELF {{
-                    weight = (90 + RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10)) // 93-120
-                }}
-                HALF_ELF {{
-                    weight = (110 + RANDOM(1 12) + RANDOM(1 12) + RANDOM(1 12)) // 113-146
-                }}
-                DWARF {{
-                    weight = (130 + RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10)) // 134-170
-                }}
-                HALFLING {{
-                    weight = (52 + RANDOM(1 4) + RANDOM(1 4) + RANDOM(1 4) + RANDOM(1 4) + RANDOM(1 4)) // 56-72
-                }}
-                GNOME{{
-                    weight = (72 + RANDOM(1 4) + RANDOM(1 4) + RANDOM(1 4) + RANDOM(1 4) + RANDOM(1 4)) // 76-92
-                }}
-                HALFORC {{
-                    weight = (135 + RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10)+ RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10)) // 141-195
-                }} //halforcs actually have lower average weight than humans in the AD&D books
-                DEFAULT//human or will also capture any custom races
-                    weight = (140 + RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10)+ RANDOM(1 10) + RANDOM(1 10) + RANDOM(1 10)) // 146-200
-                }}
+        weight_option = check_ini{|ini="weight_option"}
+        IF {IS_AN_INT weight__option} {{
+            weight = weight_option
+        ]] ELSE [[
+            IF {!FILE_EXISTS "%MOD_FOLDER%/lib/resource/%weight_option%.2da" && default_weight_option = 0} {{ //if the weight option specified in the ini doesn't exist as a 2da, print a warning and default to 5e weights. Only need to do this check once, hence the default_weight_option variable
+                PRINT "Weight Option not found, defaulting to 5e weights"
+                SPRINT weight_option "5e"
+                default_weight_option = 1
+            }}    
+            LAF 2da_read STR_VAR file="weight_option.2da" path= "%data_loc%" RET_ARRAY weight_array=array weight_rows=rows END
+            check_race = array_contains[|array="weight_rows" key="%race%"]
+            IF {!check_race} {{
+                PRINT "Race %race% does not have defined weights, defaulting to human"
+                SPRINT race "HUMAN"
             }}
-        }} ELSE {{ //5e weights from players handbook. 5e has same weight for males and females. Note that for simplicity I have not included subraces
-            PATCH_MATCH "%race%" WITH
-            ELF {{//based on high elves 
-                weight = (90 + ((RANDOM(1 10) + RANDOM(1 10)) * RANDOM(1 4))) // 92-170
-            }}
-            HALF_ELF {{
-                weight = (110 + ((RANDOM(1 8) + RANDOM(1 8)) * (RANDOM(1 4) + RANDOM(1 4)))) // 114-238
-            }}
-            DWARF {{//based on mountain dwarves
-                weight = (130 + ((RANDOM(1 4) + RANDOM(1 4)) * (RANDOM(1 6) + RANDOM(1 6)))) // 134-226
-            }}
-            HALFLING {{
-                weight = (35 + RANDOM(1 4) + RANDOM(1 4)) // 37-43
-            }}
-            GNOME{{
-                weight = (35 + RANDOM(1 4) + RANDOM(1 4)) // 37-43
-            }}
-            HALFORC {{//halforcs are on average heavier than humans in 5e, but still have a wide weight range
-                weight = (140 + ((RANDOM(1 10) + RANDOM(1 10)) * (RANDOM(1 6) + RANDOM(1 6)))) // 144-380
-            }}             DEFAULT//human or will also capture any custom races
-                weight = (110 + ((RANDOM(1 10) + RANDOM(1 10)) * (RANDOM(1 4) + RANDOM(1 4)))) // 114-270
-            }}
-        }} 
-    END
+            IF {gender = "FEMALE"} {{
+                weight = }}
+                
+    END            
+
+
