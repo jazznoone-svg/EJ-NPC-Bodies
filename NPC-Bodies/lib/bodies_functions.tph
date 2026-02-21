@@ -28,7 +28,7 @@ DEFINE_ACTION_MACRO process_cres BEGIN
         COPY_EXISTING_REGEXP GLOB ~.+\.CRE~ ~override~
             READ_ASCII DEATHVAR "dv" (32) NULL
             TO_LOWER dv
-            IF {VARIABLE_IS_SET sfo_joinable_dvs[dv]} 
+            IF {VARIABLE_IS_SET $sfo_joinable_dvs("dv")} 
                     {{
                     //this is a joinable NPC, extract relevant data and save to array
                     READ_STRREF 0x8 name
@@ -42,7 +42,7 @@ DEFINE_ACTION_MACRO process_cres BEGIN
                     weight= calculate_weight{|race="%race%" gender="%gender%"}
                     }}
 
-                    array.add
+
         2da_write[|file="EJB_scripts.2da" path= "%Wdata_loc%" array="script_array"] 
         2da_write[|file="EJB_dvs.2da" path= "%data_loc%" array="dv_array"] 
         
@@ -70,14 +70,15 @@ DEFINE_PATCH_FUNCTION calculate_weight
                 default_weight_option = 1
             }}    
             LAF 2da_read STR_VAR file="weight_option.2da" path= "%data_loc%" RET_ARRAY weight_array=array weight_rows=rows END
-            check_race = array_contains[|array="weight_rows" key="%race%"]
-            IF {!check_race} {{
+            IF {!VARIABLE_IS_SET $weight_rows("%race%")} {{
                 PRINT "Race %race% does not have defined weights, defaulting to human"
                 SPRINT race "HUMAN"
             }}
-            IF {gender = "FEMALE"} {{
-                weight = }}
-                
+            IF {gender = "FEMALE"} {{           
+                weight = $weight_array("%race%" "base") - $weight_array("%race%" "female") + ((RANDOM (1 $weight_array("%race%" "mod_dice_size")) * $weight_array("%race%" "mod_dice_num")) *  (RANDOM (1 $weight_array("%race%" "mult_dice_size")) * $weight_array("%race%" "mult_dice_num"))) // calculates weight based on base weight -
+            }} ELSE {{
+                weight = $weight_array("%race%" "base")  + ((RANDOM (1 $weight_array("%race%" "mod_dice_size")) * $weight_array("%race%" "mod_dice_num")) *  (RANDOM (1 $weight_array("%race%" "mult_dice_size")) * $weight_array("%race%" "mult_dice_num"))) 
+            }}            
     END            
 
 
