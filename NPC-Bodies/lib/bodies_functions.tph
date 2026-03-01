@@ -2,7 +2,7 @@
 /// Create DV index array
 /////////////////////////////////////////////
 DEFINE_ACTION_MACRO create_dv_index_array BEGIN
-    OUTER_SET ind=0
+    local_set ind=0
     ACTION_PHP_EACH sfo_joinable_dvs AS dv => discard [[
         array.add[dv_ind]
         [[
@@ -61,15 +61,18 @@ DEFINE_PATCH_FUNCTION calculate_weight
             weight       
     BEGIN        
         weight_option = check_ini{|ini="weight_option"}
-        IF {IS_AN_INT weight__option} {{
+        IF {IS_AN_INT weight_option} {{
             weight = weight_option
-        ]] ELSE [[
+        }} ELSE {{
             IF {!FILE_EXISTS "%MOD_FOLDER%/lib/resource/%weight_option%.2da" && default_weight_option = 0} {{ //if the weight option specified in the ini doesn't exist as a 2da, print a warning and default to 5e weights. Only need to do this check once, hence the default_weight_option variable
                 PRINT "Weight Option not found, defaulting to 5e weights"
                 SPRINT weight_option "5e"
                 default_weight_option = 1
             }}    
-            LAF 2da_read STR_VAR file="weight_option.2da" path= "%data_loc%" RET_ARRAY weight_array=array weight_rows=rows END
+            IF {!VARIABLE_IS_SET weight_array_loaded} {{
+                LAF 2da_read STR_VAR file="%weight_option%.2da" path="%MOD_FOLDER%/lib/resource" RET_ARRAY weight_array=array weight_rows=rows END
+                weight_array_loaded = 1
+            }}
             IF {!VARIABLE_IS_SET $weight_rows("%race%")} {{
                 PRINT "Race %race% does not have defined weights, defaulting to human"
                 SPRINT race "HUMAN"
